@@ -1,0 +1,32 @@
+
+
+# Site-specific modules from libtml
+
+package require page 1.0
+
+# Standard Tcl Library
+
+package require html
+package require ncgi
+
+# This allows to reset the package by appending ?packageReset=faq
+# for instance to a .tml query
+
+foreach pkg [ncgi::valueList packageReset] {
+    package forget $pkg
+    package require $pkg
+    Stderr "Reset package $pkg"
+}
+
+# These are the default colors and fonts for various HTML objects
+
+# #cc3300 is the "Tcl read"
+# #003399 is the "Tcl blue"
+
+html::init {
+    body.bgcolor	white
+    body.text		black
+    thinrule.bgcolor	#cc3300
+    font.face		arial
+}
+

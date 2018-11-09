@@ -1,0 +1,46 @@
+[page::header "Protothrottle Bridge Web Interface"]
+[Doc_Dynamic]
+<!-- Sets the footer content -->
+[page::contents {
+	   Home     /index.html
+       ShowLog  /showlog
+       Editparms /editparms
+	   Restart /restart
+   }
+]
+
+<!-- Two Column Format -->
+<table border=0 cellpadding=4>
+<tr><td valign=top>
+<!-- Left Column -->
+
+[clock format [clock seconds] -format "%B %d, %Y %H:%M:%S"]
+
+
+<p>
+This is the interface to the Protothrottle bridge for esu,
+JMRI and LMRI systems
+<ul>
+<li>Show Log
+<li>Edit startup parameters
+<li>Restart the interface
+</ul>
+<p>
+Version 1.0
+<!-- End Left Column -->
+</td><td valign=top>
+<!-- Right Column -->
+
+<h4>Protothrottle Control</h4>
+[html::minorList {
+       ShowLog  /showlog
+       Edit-parameters /editparms
+       restart /restart
+}]
+
+<!-- End Right Column -->
+</td></tr>
+<!-- End Two Column Format -->
+</table>
+
+[page::footer]

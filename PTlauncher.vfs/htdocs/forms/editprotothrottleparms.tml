@@ -1,0 +1,32 @@
+[gdspage::singleheader "View/Edit Protothrottle initialization parameters"]
+<form action="/editparms" method="POST"
+
+Enter an interface type:
+<table bordersize=0><tr><td>
+<select name=devicetype>
+  <option value='ISIMTESTBEDS'>ISIM Testbeds</option>
+  <option value='ISIM_I_T'>ISIM I&T</option>
+  <option value='SCTESTBEDS'>Spacecraft Testbeds</option>
+</select></td><td>
+<select name=phase>
+  <option value='AMBIENT'>Ambient</option>
+</select></td></tr>
+</table>
+<p>
+Enter a Title for the saved dataset:<input type='text' size='30' name='title'>
+<br>
+Enter a Number for the saved dataset: <input type'text' size='20' name='number'>
+<p>
+Enter a test description.  The description is saved in the README.XML file<br>
+located in the root directory of the saved test data.<p>
+<textarea id = "desc" name="description" rows = "10" cols = "80">
+</textarea>
+<p>
+<br>Options:<br>
+<table bordersize=0><tr><td>
+<input type='checkbox' name='zipOrNot' value='ON' unchecked></td><td>Create Zip Container
+</td></tr></table>
+<br>
+Action: <input type="submit" name="Submit" value="Save ISIM Data"><!--></form>
+
+[gdspage::footer]
