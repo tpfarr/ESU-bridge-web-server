@@ -18,7 +18,6 @@ package require struct
 package require inifile
 
 global PID
-global SYSTEM_PID
 
 ::struct::queue log_q
 
@@ -34,27 +33,18 @@ Direct_Url /supplylog  ::PT::/supplylog
 
 proc ::PT::/restart {} {
     global PID
-    global SYSTEM_PID
-    set html ""
-    puts "Entering restart"
-    append html [page::header ""]
-    append html "<h3>Start Protothrottle Bridge</H3>"
-	if {$SYSTEM_PID != 0} {
-            puts "Closing system PID $SYSTEM_PID"
+	if {$PID != 0} {
 	    if { [catch { close $PID } result ] } {
                puts $result
                return $html
 	    } else {
-		set SYSTEM_PID 0
+		set PID 0
             }
 	}
-        puts "Waiting for Close"
-        after 2000
-        puts "Current Directory is [pwd]"
 	if { [catch { set PID [open "| ./run_bridge.sh"] } result ] } {
          puts $result
 	} else {
-		set SYSTEM_PID [pid $PID]
+                puts "run_bridge.sh started..."
                 fconfigure $PID -blocking 0 -buffering none
 		fileevent $PID readable [list ::PT::pipeHandler $PID]
 	}
@@ -170,7 +160,6 @@ proc ::PT::/updateconfig {Submit Cancel args} {
     return $html
 }
 
-set SYSTEM_PID 0
 set PID 0
 puts "Ready to start..."
-after 15000 ::PT::/restart
+after 5000 ::PT::/restart
