@@ -74,7 +74,10 @@ proc ::PT::/showlog {} {
                   document.getElementById("btnPause").value = "Resume";
               }
           }
-          logSocket = new WebSocket("ws://localhost:8015/supplylog", "statProto");
+    }
+    append html "$body"
+    append html "logSocket = new WebSocket(\"ws://$::env(SERVER_NAME):$::env(SERVER_PORT)/supplylog\", \"statProto\");"
+    set body {
           logSocket.onmessage = function(event) {
               var msg = event.data;
               if (!paused) {
