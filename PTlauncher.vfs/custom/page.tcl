@@ -52,8 +52,8 @@ proc page::contents {list} {
 proc page::header {title} {
     page::SetLevels $title
     set html ""
-    append html "<html><head><script src='/javascripts/prototype.js' type='text/javascript'></script>\n"
-	append html "<link rel='stylesheet' type='text/css' href='/css/table.css' />\n"
+    append html "<html><head>\n"
+    append html "<link rel='stylesheet' type='text/css' href='/css/table.css' />\n"
     append html "<title>$title</title></head>\n"
     append html "<table cellpadding=0 cellspacing=0 border=0 width=100%>\n"
     append html "<tr> \

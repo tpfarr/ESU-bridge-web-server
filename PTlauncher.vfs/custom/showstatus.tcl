@@ -14,8 +14,11 @@
 #  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE 
 #  POSSIBILITY OF SUCH DAMAGE.
 #
+# Modified 1-19-2019 - T. Pfarr - Websocket interface for log display update.
+# 
 package require struct
 package require inifile
+package require websocket
 
 global PID
 
@@ -29,7 +32,7 @@ Direct_Url /editparms	::PT::/editparms
 Direct_Url /showlog    ::PT::/showlog
 Direct_Url /restart    ::PT::/restart
 Direct_Url /updateconfig  ::PT::/updateconfig
-Direct_Url /supplylog  ::PT::/supplylog
+Url_PrefixInstall /supplylog [list ::PT::/supplylog /supplylog]
 
 proc ::PT::/restart {} {
     global PID
@@ -55,33 +58,72 @@ proc ::PT::/showlog {} {
     set html ""
     append html [page::header ""]
     append html "<h3>Protothrottle Bridge log messages</H3>"
+    append html "<input id='btnPause' type='button' value = 'Pause' onclick ='onPauseClick()'>"
     append html [page::footer NO]
     set body {
-       <div id="log_frame"></div>
+       <textarea id="log_frame" readonly></textarea>
        <script type="text/javascript" language="javascript" charset="utf-8">
-          new Ajax.PeriodicalUpdater("log_frame", "/supplylog", {method: 'post', frequency: 5, decay: 1, encoding :''});
+          var logSocket = null;
+          var paused = false;
+          function onPauseClick() {
+              if (paused) {
+                  paused = false;
+                  document.getElementById("btnPause").value = "Pause";
+              } else {
+                  paused = true;
+                  document.getElementById("btnPause").value = "Resume";
+              }
+          }
+          logSocket = new WebSocket("ws://localhost:8015/supplylog", "statProto");
+          logSocket.onmessage = function(event) {
+              var msg = event.data;
+              if (!paused) {
+                  var content = msg + "\r\n" + document.getElementById("log_frame").value;
+                  document.getElementById("log_frame").value = content;
+              }
+          };
         </script>
     }
     append html "$body"
     append html "</body></html>"
     return "$html"
+}  
+
+proc ::PT::/supplylog {prefix sock suffix} {
+	upvar #0 Httpd$sock data
+#       foreach item [array name data] { puts "$item" }
+#	puts "In /supplylog"
+#	::websocket::loglevel debug
+	::websocket::server $sock
+	::websocket::live $sock "/supplylog" ::PT::HandleStats statProto
+	set wstest [::websocket::test $sock $sock "/supplylog" "$data(headerlist)" "$data(query)"]
+	if {$wstest == 1} {
+		Httpd_Suspend $sock 0
+		::websocket::upgrade $sock
+	} else {
+		Httpd_ReturnData $sock text/html "Not a valid Websocket connection!"
+	}
 }
 
-proc ::PT::/supplylog {} {
-        set size [::log_q size]
-#        puts "in supplylog, size=$size"
-        if {$size > 0} {
-	    set l [::log_q peek $size]
-	    for {set i $size} {$i >= 0} {incr i -1} {
-            set str [lindex [lindex $l $i] 1]
-               append html "<font color='White'>$str</font><BR>\n"
-            }
-        } else {
-	        append html "<font color='White'>Log is empty</font>"
-        } 
-        return $html
-}   
-
+proc ::PT::HandleStats {sock type msg} {
+	switch $type {
+	    connect { ::PT::sendLog $sock ; return }
+		request { return }
+		close {return}
+		disconnect { return }
+		binary { return }
+		text { return }
+		pong { return }
+		}
+}
+		
+proc ::PT::sendLog {sock} {
+        while {[::log_q size] > 0} {
+	    set len [::websocket::send $sock "text" [::log_q get 1]]
+#	    puts "wrote websocket text of $len bytes"
+        }
+	after 500 ::PT::sendLog $sock
+}
 
 proc ::PT::pipeHandler {f} {
 #        puts "in pipehandler"
@@ -93,12 +135,12 @@ proc ::PT::pipeHandler {f} {
         set real_text $line
 #	puts "In pipeHandler, msg=$real_text"
 	append text [clock format [clock seconds] -format "%Y-%m-%dT%H:%M:%S"] " Msg: " $real_text
-        ::PT::write_log "esu_bridge" $text
+        ::PT::write_log $text
 }
 
-proc ::PT::write_log {responder text} {
-	::log_q put [list $responder $text]
-	if {[::log_q size] > 200} {
+proc ::PT::write_log {text} {
+	::log_q put $text
+	if {[::log_q size] > 2000} {
 		set discard [::log_q get 1]
     }
 }
