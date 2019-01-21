@@ -69,9 +69,11 @@ proc ::PT::/showlog {} {
               if (paused) {
                   paused = false;
                   document.getElementById("btnPause").value = "Pause";
+                  logSocket.send("Resume");
               } else {
                   paused = true;
                   document.getElementById("btnPause").value = "Resume";
+                  logSocket.send("Pause");
               }
           }
     }
@@ -80,10 +82,8 @@ proc ::PT::/showlog {} {
     set body {
           logSocket.onmessage = function(event) {
               var msg = event.data;
-              if (!paused) {
-                  var content = msg + "\r\n" + document.getElementById("log_frame").value;
-                  document.getElementById("log_frame").value = content;
-              }
+              var content = msg + "\r\n" + document.getElementById("log_frame").value;
+              document.getElementById("log_frame").value = content;
           };
         </script>
     }
@@ -109,19 +109,21 @@ proc ::PT::/supplylog {prefix sock suffix} {
 }
 
 proc ::PT::HandleStats {sock type msg} {
+        global PAUSE
 	switch $type {
 	    connect { ::PT::sendLog $sock ; return }
 		request { return }
 		close {return}
 		disconnect { return }
 		binary { return }
-		text { return }
+		text { set PAUSE "$msg" ; return }
 		pong { return }
 		}
 }
 		
 proc ::PT::sendLog {sock} {
-        while {[::log_q size] > 0} {
+        global PAUSE
+        while {[::log_q size] > 0 && $PAUSE eq "Resume"} {
 	    set len [::websocket::send $sock "text" [::log_q get 1]]
 #	    puts "wrote websocket text of $len bytes"
         }
@@ -142,9 +144,9 @@ proc ::PT::pipeHandler {f} {
 }
 
 proc ::PT::write_log {text} {
-	::log_q put $text
-	if {[::log_q size] > 2000} {
-		set discard [::log_q get 1]
+    ::log_q put $text
+    if {[::log_q size] > 5000} {
+	set discard [::log_q get 1]
     }
 }
 
@@ -206,5 +208,6 @@ proc ::PT::/updateconfig {Submit Cancel args} {
 }
 
 set PID 0
+set PAUSE "Resume"
 puts "Ready to start..."
 after 5000 ::PT::/restart
