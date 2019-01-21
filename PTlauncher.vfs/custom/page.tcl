@@ -52,63 +52,21 @@ proc page::contents {list} {
 proc page::header {title} {
     page::SetLevels $title
     set html ""
-    append html "<html><head>\n"
+    append html "<!DOCTYPE html>\n<html>\n<head>\n"
     append html "<link rel='stylesheet' type='text/css' href='/css/table.css' />\n"
-    append html "<title>$title</title></head>\n"
+    append html "<title>$title</title></head>\n<body>\n"
+    append html "<hr>\n"
     append html "<table cellpadding=0 cellspacing=0 border=0 width=100%>\n"
     append html "<tr> \
 	[html::cell align=left  "<a href=/><img src=/images/ise-logo-new.png border=0 height='75' width='75' alt='Home'></a>"] \
 	[html::cell "" "<h2>$title \(on:$::env(SERVER_NAME)\)</h2>"] \
 	</tr>"
     append html "</table>"
-    append html "<hr>"
     append html "[html::font]\n"
 
     return $html
 }
 
-proc page::singleheader {title} {
-    page::SetLevels $title
-    set html ""
-    append html "<title>$title</title></head>\n"
-    append html "<table cellpadding=0 cellspacing=0 border=0 width=100%>\n"
-    append html "<tr> \
-	[html::cell align=left  "<img src=/images/ise-logo-new.png border=0 height='75' width='75'>"] \
-	[html::cell "" "<h2>$title \(on:$::env(SERVER_NAME)\)</h2>"] \
-	</tr>"
-    append html "</table>"
-    append html "<hr>"
-    append html [html::font]\n
-    return $html
-}
-
-proc page::logheader {title} {
-    page::SetLevels $title
-    set html "<html><head><title>$title</title>\n"
-       append html "<style type='text/css'>\n\
-                p, h1, h2, h3, h4,h5,h6,li,dl \{\n\
-                    font-family: Tahoma,Verdana\;\n\
-                \}\n\
-                hr \{\n\
-	                color: white;\n\
-	                background-color: black;\n\
-	                width: 100%;\n\
-	                height: 2px;\n\
-	                margin-left:auto;\n\
-	                margin-right:auto;\n\
-                \}\n\                
-                </style>\n"
-    append html "</head>\n"
-    append html "<body bgcolor='black' text='white'>\n"
-    append html "<table cellpadding=0 cellspacing=0 border=0 width=100%>\n"
-    append html "<tr> \
-	[html::cell align=left  "      <br>"] \
-	[html::cell "" "<h2>$title \(on:$::env(SERVER_NAME)\)</h2>"] \
-	</tr>"
-    append html "</table>"
-    append html "<hr><p>"
-    return $html
-}        
 
 # page::SetLevels
 #
@@ -137,8 +95,8 @@ proc page::SetLevels {title} {
 proc page::footer { {close YES} } {
     variable contents
     append html "<!-- $contents -->\n"
+    append html "<hr>\n"
     append html "<table cellpadding=0 cellspacing=2 border=0 width=100%>\n"
-    append html "<hr>"
     append html <tr>[html::cell "" [html::minorMenu $contents </font></td><td>[html::font]]]</tr>\n
     append html </table>\n
     if {$close == "YES"} {

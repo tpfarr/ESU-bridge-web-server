@@ -61,7 +61,6 @@ proc ::PT::/showlog {} {
     append html "<input id='btnPause' type='button' value = 'Pause' onclick ='onPauseClick()'>"
     append html [page::footer NO]
     set body {
-       <textarea id="log_frame" readonly></textarea>
        <script type="text/javascript" language="javascript" charset="utf-8">
           var logSocket = null;
           var paused = false;
@@ -87,8 +86,10 @@ proc ::PT::/showlog {} {
           };
         </script>
     }
-    append html "$body"
-    append html "</body></html>"
+    append html "$body\n"
+    append html "<textarea id='log_frame' readonly rows='50' cols='100'></textarea>\n"
+    append html "</body>\n"
+    append html "</html>\n"
     return "$html"
 }  
 
