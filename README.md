@@ -17,7 +17,6 @@ PTlauncher is a Tool Command Language (TCL) Starpack containing in a self-extrac
 
 The above 3 files should be placed in the /home/iascaled/esu-bridge directory with execute privileges set for all 3 files. 
 
-The web browser url would look like:
-http://<IP address>:8015 using the default port.
+The web browser url with the default port would look like:  http://pt-interface:8015/
 
 
