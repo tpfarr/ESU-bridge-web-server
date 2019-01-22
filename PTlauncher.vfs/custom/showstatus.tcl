@@ -110,25 +110,33 @@ proc ::PT::/supplylog {prefix sock suffix} {
 }
 
 proc ::PT::HandleStats {sock type msg} {
-        global PAUSE
+        global STREAMS
 	switch $type {
-	    connect { ::PT::sendLog $sock ; return }
-		request { return }
-		close {return}
-		disconnect { return }
-		binary { return }
-		text { set PAUSE "$msg" ; return }
-		pong { return }
-		}
+	    connect { set STREAMS($sock) "Resume" ; return }
+	    request { return }
+	    close { unset -nocomplain STREAMS($sock) ; return}
+	    disconnect { unset -nocomplain STREAMS($sock) ; return }
+	    binary { return }
+	    text { set STREAMS($sock) "$msg" ; return }
+	    pong { return }
+	}
 }
-		
-proc ::PT::sendLog {sock} {
-        global PAUSE
-        while {[::log_q size] > 0 && $PAUSE eq "Resume"} {
-	    set len [::websocket::send $sock "text" [::log_q get 1]]
-#	    puts "wrote websocket text of $len bytes"
+
+proc ::PT::sendLog {} {
+        global STREAMS
+        set socklist [array names STREAMS]
+        if {[llength $socklist] > 0} {
+            while {[::log_q size] > 0} {
+                set msg [::log_q get 1]
+                foreach sock $socklist {
+                    if {$STREAMS($sock) eq "Resume"} {
+	                set len [::websocket::send $sock "text" "$msg"]
+#        	        puts "wrote websocket $sock text of $len bytes"
+                    }   
+                }
+            }
         }
-	after 500 ::PT::sendLog $sock
+	after 500 ::PT::sendLog
 }
 
 proc ::PT::pipeHandler {f} {
@@ -212,3 +220,4 @@ set PID 0
 set PAUSE "Resume"
 puts "Ready to start..."
 after 5000 ::PT::/restart
+::PT::sendLog
