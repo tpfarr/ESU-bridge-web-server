@@ -53,6 +53,7 @@ proc page::header {title} {
     page::SetLevels $title
     set html ""
     append html "<!DOCTYPE html>\n<html>\n<head>\n"
+    append html "<html><head><script src='/javascripts/Queue.js' type='text/javascript'></script>\n"
     append html "<link rel='stylesheet' type='text/css' href='/css/table.css' />\n"
     append html "<title>$title</title></head>\n<body>\n"
     append html "<hr>\n"

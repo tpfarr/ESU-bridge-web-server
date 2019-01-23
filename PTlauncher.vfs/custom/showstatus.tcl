@@ -64,15 +64,16 @@ proc ::PT::/showlog {} {
        <script type="text/javascript" language="javascript" charset="utf-8">
           var logSocket = null;
           var paused = false;
+          var log_q = new Queue();
+          var content = "";
+
           function onPauseClick() {
               if (paused) {
                   paused = false;
                   document.getElementById("btnPause").value = "Pause";
-                  logSocket.send("Resume");
               } else {
                   paused = true;
                   document.getElementById("btnPause").value = "Resume";
-                  logSocket.send("Pause");
               }
           }
     }
@@ -80,9 +81,19 @@ proc ::PT::/showlog {} {
     append html "logSocket = new WebSocket(\"ws://$::env(SERVER_NAME):$::env(SERVER_PORT)/supplylog\", \"statProto\");"
     set body {
           logSocket.onmessage = function(event) {
-              var msg = event.data;
-              var content = msg + "\r\n" + document.getElementById("log_frame").value;
-              document.getElementById("log_frame").value = content;
+              if (paused) {
+                   log_q.enqueue(event.data);
+                   if (log_q.getLength() > 1000) {
+                      content = queue.dequeue();
+                   }
+              } else {
+                   while (log_q.getLength() > 0) {
+                      content = log_q.dequeue() + "\r\n" + document.getElementById("log_frame").value;
+                      document.getElementById("log_frame").value = content;
+                   }
+                      content = event.data + "\r\n" + document.getElementById("log_frame").value;
+                      document.getElementById("log_frame").value = content;
+              }
           };
         </script>
     }
@@ -112,12 +123,12 @@ proc ::PT::/supplylog {prefix sock suffix} {
 proc ::PT::HandleStats {sock type msg} {
         global STREAMS
 	switch $type {
-	    connect { set STREAMS($sock) "Resume" ; return }
+	    connect { set STREAMS($sock) "Connected" ; return }
 	    request { return }
 	    close { unset -nocomplain STREAMS($sock) ; return}
 	    disconnect { unset -nocomplain STREAMS($sock) ; return }
 	    binary { return }
-	    text { set STREAMS($sock) "$msg" ; return }
+	    text { return }
 	    pong { return }
 	}
 }
@@ -129,10 +140,8 @@ proc ::PT::sendLog {} {
             while {[::log_q size] > 0} {
                 set msg [::log_q get 1]
                 foreach sock $socklist {
-                    if {$STREAMS($sock) eq "Resume"} {
-	                set len [::websocket::send $sock "text" "$msg"]
-#        	        puts "wrote websocket $sock text of $len bytes"
-                    }   
+	            set len [::websocket::send $sock "text" "$msg"]
+#        	    puts "wrote websocket $sock text of $len bytes"
                 }
             }
         }
