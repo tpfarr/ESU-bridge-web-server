@@ -23,6 +23,7 @@ package require websocket
 global PID
 
 ::struct::queue log_q
+::struct::queue initialization_q
 
 namespace eval ::PT:: {
 
@@ -123,7 +124,7 @@ proc ::PT::/supplylog {prefix sock suffix} {
 proc ::PT::HandleStats {sock type msg} {
         global STREAMS
 	switch $type {
-	    connect { set STREAMS($sock) "Connected" ; return }
+	    connect { set STREAMS($sock) "Initial" ; return }
 	    request { return }
 	    close { unset -nocomplain STREAMS($sock) ; return}
 	    disconnect { unset -nocomplain STREAMS($sock) ; return }
@@ -138,12 +139,19 @@ proc ::PT::sendLog {} {
         set socklist [array names STREAMS]
         if {[llength $socklist] > 0} {
             while {[::log_q size] > 0} {
-                set msg [::log_q get 1]
+                set msg [::log_q get 1]    
                 foreach sock $socklist {
-	            set len [::websocket::send $sock "text" "$msg"]
-#        	    puts "wrote websocket $sock text of $len bytes"
-                }
-            }
+                    if {$STREAMS($sock) eq "Initial"} {
+                       set msg_list [::initialization_q peek [::initialization_q size]]
+                       foreach init_msg $msg_list {                      
+	                    set len [::websocket::send $sock "text" "$init_msg"]
+                       }
+                       set STREAMS($sock) "InProgress"
+                    } else {                  
+	               set len [::websocket::send $sock "text" "$msg"]
+                    }
+                 }
+             }
         }
 	after 500 ::PT::sendLog
 }
@@ -163,7 +171,11 @@ proc ::PT::pipeHandler {f} {
 
 proc ::PT::write_log {text} {
     ::log_q put $text
-    if {[::log_q size] > 5000} {
+    ::initialization_q put $text
+    if {[::log_q size] > 100} {
+	set discard [::log_q get 1]
+    }
+    if {[::initialization_q size] > 2000} {
 	set discard [::log_q get 1]
     }
 }
@@ -226,7 +238,6 @@ proc ::PT::/updateconfig {Submit Cancel args} {
 }
 
 set PID 0
-set PAUSE "Resume"
 puts "Ready to start..."
 after 5000 ::PT::/restart
 ::PT::sendLog
