@@ -163,6 +163,7 @@ proc ::PT::sendLog {} {
 			    if {[::websocket::send $sock "text" "$msg"] < 0} {
 			       puts "$sock socket blocked or error, removed from active list"
 			       unset -nocomplain STREAMS($sock)
+                               break
 			    }
 		        }
 		    }
@@ -192,8 +193,6 @@ proc ::PT::write_log {text} {
     ::initialization_q put $text
     if {!$PAUSE} {
         ::log_q put $text
-    } else {
-        ::log_q clear
     }
     if {[::log_q size] > 100} {
 	set discard [::log_q get 1]
