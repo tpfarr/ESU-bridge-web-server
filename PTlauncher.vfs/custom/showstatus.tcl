@@ -21,6 +21,7 @@ package require inifile
 package require websocket
 
 global PID
+global PAUSE
 
 ::struct::queue log_q
 ::struct::queue initialization_q
@@ -33,6 +34,7 @@ Direct_Url /editparms	::PT::/editparms
 Direct_Url /showlog    ::PT::/showlog
 Direct_Url /restart    ::PT::/restart
 Direct_Url /updateconfig  ::PT::/updateconfig
+Direct_Url /data ::PT::/data
 Url_PrefixInstall /supplylog [list ::PT::/supplylog /supplylog]
 
 proc ::PT::/restart {} {
@@ -48,7 +50,6 @@ proc ::PT::/restart {} {
 	if { [catch { set PID [open "| ./run_bridge.sh"] } result ] } {
          puts $result
 	} else {
-                puts "run_bridge.sh started..."
                 fconfigure $PID -blocking 0 -buffering none
 		fileevent $PID readable [list ::PT::pipeHandler $PID]
 	}
@@ -125,33 +126,50 @@ proc ::PT::HandleStats {sock type msg} {
         global STREAMS
 	switch $type {
 	    connect { set STREAMS($sock) "Initial" ; return }
-	    request { return }
+	    timeout { return }
+            error { return }
 	    close { unset -nocomplain STREAMS($sock) ; return}
 	    disconnect { unset -nocomplain STREAMS($sock) ; return }
 	    binary { return }
 	    text { return }
-	    pong { return }
+            ping { puts "ping" ; return }
+	    pong { puts "pong" ; return }
 	}
 }
 
 proc ::PT::sendLog {} {
         global STREAMS
-        set socklist [array names STREAMS]
-        if {[llength $socklist] > 0} {
-            while {[::log_q size] > 0} {
-                set msg [::log_q get 1]    
-                foreach sock $socklist {
-                    if {$STREAMS($sock) eq "Initial"} {
-                       set msg_list [::initialization_q peek [::initialization_q size]]
-                       foreach init_msg $msg_list {                      
-	                    set len [::websocket::send $sock "text" "$init_msg"]
-                       }
-                       set STREAMS($sock) "InProgress"
-                    } else {                  
-	               set len [::websocket::send $sock "text" "$msg"]
-                    }
-                 }
-             }
+        global PAUSE
+	set socklist [array names STREAMS]
+	if {[llength $socklist] > 0} {
+                set PAUSE false
+                while {[::log_q size] > 0} {
+	            set msg [::log_q peek 1]     
+		    foreach sock $socklist {
+		        if {$STREAMS($sock) eq "Initial"} {
+                            if {[::initialization_q size] > 0} {
+		               set msg_list [::initialization_q peek [::initialization_q size]]
+		               foreach init_msg $msg_list {        
+			          if {[::websocket::send $sock "text" "$init_msg"] < 0} {
+			             puts "$sock socket blocked or error, removed from active list"
+			             unset -nocomplain STREAMS($sock)
+			             break 
+			          }
+                               }
+                               set discard [::log_q get 1]
+		             }
+		             catch {set STREAMS($sock) "InProgress"}
+		        } else {
+			    if {[::websocket::send $sock "text" "$msg"] < 0} {
+			       puts "$sock socket blocked or error, removed from active list"
+			       unset -nocomplain STREAMS($sock)
+			    }
+		        }
+		    }
+                    set discard [::log_q get 1]
+                }
+	} else {
+           set PAUSE true
         }
 	after 500 ::PT::sendLog
 }
@@ -165,18 +183,23 @@ proc ::PT::pipeHandler {f} {
 	if {[string equal [set line [gets $f]] ""]} {return}
         set real_text $line
 #	puts "In pipeHandler, msg=$real_text"
-	append text [clock format [clock seconds] -format "%Y-%m-%dT%H:%M:%S"] " Msg: " $real_text
+	append text [clock format [clock seconds] -format "%Y-%m-%dT%H:%M:%S"] ": $real_text"
         ::PT::write_log $text
 }
 
 proc ::PT::write_log {text} {
-    ::log_q put $text
+    global PAUSE
     ::initialization_q put $text
+    if {!$PAUSE} {
+        ::log_q put $text
+    } else {
+        ::log_q clear
+    }
     if {[::log_q size] > 100} {
 	set discard [::log_q get 1]
     }
-    if {[::initialization_q size] > 2000} {
-	set discard [::log_q get 1]
+    if {[::initialization_q size] >1000} {
+	set discard [::initialization_q get 1]
     }
 }
 
@@ -238,6 +261,7 @@ proc ::PT::/updateconfig {Submit Cancel args} {
 }
 
 set PID 0
+set PAUSE true
 puts "Ready to start..."
 after 5000 ::PT::/restart
 ::PT::sendLog
