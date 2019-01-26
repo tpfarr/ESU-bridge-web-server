@@ -156,7 +156,7 @@ proc ::PT::sendLog {} {
 			             break 
 			          }
                                }
-                               set discard [::log_q get 1]
+                               catch {set discard [::log_q get 1]}
 		             }
 		             catch {set STREAMS($sock) "InProgress"}
 		        } else {
@@ -167,7 +167,7 @@ proc ::PT::sendLog {} {
 			    }
 		        }
 		    }
-                    set discard [::log_q get 1]
+                    catch {set discard [::log_q get 1]}
                 }
 	} else {
            set PAUSE true
