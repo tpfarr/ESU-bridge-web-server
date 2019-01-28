@@ -59,7 +59,7 @@ proc page::header {title} {
     append html "<hr>\n"
     append html "<table cellpadding=0 cellspacing=0 border=0 width=100%>\n"
     append html "<tr> \
-	[html::cell align=left  "<a href=/><img src=/images/ise-logo-new.png border=0 height='75' width='75' alt='Home'></a>"] \
+	[html::cell align=left  "<a href=/><img src=/images/ise-logo-new.png border=0 height='65' width='65' alt='Home'></a>"] \
 	[html::cell "" "<h2>$title \(on:$::env(SERVER_NAME)\)</h2>"] \
 	</tr>"
     append html "</table>"

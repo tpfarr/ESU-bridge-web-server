@@ -58,9 +58,8 @@ proc ::PT::/restart {} {
 
 proc ::PT::/showlog {} {
     set html ""
-    append html [page::header ""]
-    append html "<h3>Protothrottle Bridge log messages</H3>"
-    append html "<input id='btnPause' type='button' value = 'Pause' onclick ='onPauseClick()'>"
+    append html [page::header "PT Bridge Log"]
+    append html "Pause/Resume display: <input id='btnPause' type='button' value = 'Pause' onclick ='onPauseClick()'>"
     append html [page::footer NO]
     set body {
        <script type="text/javascript" language="javascript" charset="utf-8">
