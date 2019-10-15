@@ -139,39 +139,42 @@ proc ::PT::HandleStats {sock type msg} {
 proc ::PT::sendLog {} {
         global STREAMS
         global PAUSE
+#       puts "In sendlog"
 	set socklist [array names STREAMS]
 	if {[llength $socklist] > 0} {
+#                puts "In sendlog,$socklist"
                 set PAUSE false
-                while {[::log_q size] > 0} {
-	            set msg [::log_q peek 1]     
-		    foreach sock $socklist {
-		        if {$STREAMS($sock) eq "Initial"} {
-                            if {[::initialization_q size] > 0} {
-		               set msg_list [::initialization_q peek [::initialization_q size]]
-		               foreach init_msg $msg_list {        
-			          if {[::websocket::send $sock "text" "$init_msg"] < 0} {
-			             puts "$sock socket blocked or error, removed from active list"
-			             unset -nocomplain STREAMS($sock)
-			             break 
-			          }
-                               }
-                               catch {set discard [::log_q get 1]}
-		             }
-		             catch {set STREAMS($sock) "InProgress"}
-		        } else {
-			    if {[::websocket::send $sock "text" "$msg"] < 0} {
-			       puts "$sock socket blocked or error, removed from active list"
-			       unset -nocomplain STREAMS($sock)
-                               break
-			    }
+#               puts "In sendlog, log_q size=[::log_q size]"
+		foreach sock $socklist {
+		    if {$STREAMS($sock) eq "Initial"} {
+                        if {[::initialization_q size] > 0} {
+		           set msg_list [::initialization_q peek [::initialization_q size]]
+		           foreach init_msg $msg_list {
+	         	      if {[::websocket::send $sock "text" "$init_msg"] < 0} {
+			         puts "$sock socket blocked or error, removed from active list"
+			         unset -nocomplain STREAMS($sock)
+			         break 
+			      }
+                           }
 		        }
+		        catch {set STREAMS($sock) "InProgress"}
 		    }
-                    catch {set discard [::log_q get 1]}
-                }
+                 }
+                 while {[::log_q size] > 0} {
+	             set msg [::log_q peek 1]
+                     foreach sock $socklist {
+			 if {[::websocket::send $sock "text" "$msg"] < 0} {
+			    puts "$sock socket blocked or error, removed from active list"
+			    unset -nocomplain STREAMS($sock)
+                            break
+			 }
+                      }
+                      catch {set discard [::log_q get 1]}
+                  }
 	} else {
            set PAUSE true
         }
-	after 500 ::PT::sendLog
+	after 1000 ::PT::sendLog
 }
 
 proc ::PT::pipeHandler {f} {
